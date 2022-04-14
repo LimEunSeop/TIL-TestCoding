@@ -70,6 +70,6 @@ npx jest --init // jest 환경 세팅
 npm i -D @types/jest // VSCode 상에서 인터페이스 확인을 위해 필요. 공식문서와 함께 보면 좋음
 ```
 
-- test 폴더에 src 폴더 트리구조 형태로 test 파일들 만들자. test 파일이 뭔지 명시하는것이 package.js 에 있던걸로 안다. 한번 설정법 찾아보자
+- test 폴더에 src 폴더 트리구조 형태랑 똑같이 test 파일들 만들자.
 - 커버리지 설정 변경: collectCoverage: false : 커버리지 감춘다. 가끔 보고싶을때 `jest --coverage`
 - 자동 테스트 실행: `jest --watchAll` 은 전체 테스트 실행, `jest --watch`  는 커밋이 안된 파일들만 watch 수행. 내가 활발하게 작업중인 것만 선택적으로 테스트 가능~
