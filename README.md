@@ -53,3 +53,23 @@
   - 통합을 위한 단계 (빌드, 테스트, Merge)를 자동화해야 한다. 버그수정 용이(문제점 빠르게 발견), 코드 퀄리티 향상, 개발 생산성 향상 등 **이 모든 것은 테스트코드가 존재했을 때 빛을 발한다**
 - CD: CI에서 준비된 Release를 Continuous Delivery(개발자 or 검증팀이 직접 검사후 수동 배포), Continuous Deploy(Release 준비 되자마자 배포 자동화)
 - CI/CD 툴: **Jenkins, Buildkite**, Github Actions, GitLab CI/CD, Bitbucket Pipelines, CircleCI
+
+
+## 4일차: 유닛 테스트, Jest 소개 및 환경설정
+
+- Test Runner: 테스트를 실행 후 결과 생성, 보고(Mocha)
+- Assertion: 테스트 코드 내에서 조건, 비교를 통한 테스트 로직(Chai, expect.js, better-assert)
+- Test Runner, Assertion 이 모두 적용되는 라이브러리 ⇒ Jest!!
+- Jest: 모든 JS 환경에서 심플하게 동작하는 Testing Framework
+- Jest의 특징: zero config, snapshots 지원, isolated(Test 각각 자기자신만의 process), it expect 등의 great API, Fast AND Safe, Code Coverage 제공, Easy Mocking, Great Exceptions
+- Jest 설치법
+
+```jsx
+npm i -D jest
+npx jest --init // jest 환경 세팅
+npm i -D @types/jest // VSCode 상에서 인터페이스 확인을 위해 필요. 공식문서와 함께 보면 좋음
+```
+
+- test 폴더에 src 폴더 트리구조 형태로 test 파일들 만들자. test 파일이 뭔지 명시하는것이 package.js 에 있던걸로 안다. 한번 설정법 찾아보자
+- 커버리지 설정 변경: collectCoverage: false : 커버리지 감춘다. 가끔 보고싶을때 `jest --coverage`
+- 자동 테스트 실행: `jest --watchAll` 은 전체 테스트 실행, `jest --watch`  는 커밋이 안된 파일들만 watch 수행. 내가 활발하게 작업중인 것만 선택적으로 테스트 가능~
