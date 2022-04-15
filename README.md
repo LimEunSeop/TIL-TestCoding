@@ -73,3 +73,58 @@ npm i -D @types/jest // VSCode 상에서 인터페이스 확인을 위해 필요
 - test 폴더에 src 폴더 트리구조 형태랑 똑같이 test 파일들 만들자.
 - 커버리지 설정 변경: collectCoverage: false : 커버리지 감춘다. 가끔 보고싶을때 `jest --coverage`
 - 자동 테스트 실행: `jest --watchAll` 은 전체 테스트 실행, `jest --watch`  는 커밋이 안된 파일들만 watch 수행. 내가 활발하게 작업중인 것만 선택적으로 테스트 가능~
+
+## 5일차: 테스트에 관한 고민, 테스트 작성 팁(Coverage, 계층, async테스트)
+
+- 테스트는 기술적인 측면에서는 전혀 어렵지 않다. 다만 실제 프로젝트에서 어떤 단위로 테스트케이스를 작성하고 어느 범위 까지 만들 것인가. 실제 프로젝트를 하면서 익혀 나갈 수밖에 없다.
+- [공식문서의 Introduction](https://jestjs.io/docs/getting-started)을 모두 보고 Guides 는 Indexing 정도만 하도록 하자.
+- toBe와 toEqual,matches,소수비교 등의 Matcher 들 눈에 익혀두고 resolves와 rejects, not 등의 AndNot 들의 타입이 있다는 것을 명심하자.
+- **모든 단위 테스트는 독립적이어야 한다.** 공통적인 부분이 있다면 beforeEach 등을 쓰고 전체 시작전 하고싶은게 있다면 beforeAll 등을 쓰자.
+- 에러 테스트 방법: expect 안에 에러가 실행되는 구문을 콜백과 함께 심어주고 toThrow 로 검증하자. 에러 검증 안한다면 —coverage 옵션으로 커버리지 체크할 때 커버리지가 부족한 것을 볼 수 있다. 난 테스트 할때 커버리지 옵션 키는게 더 나은것 같다. 커버리지 체크 테이블이 좀 크다면 화면을 넓히거나, 주기적으로 커버리지를 의식적으로 어떻게 체크하는지 확인하는 방안을 한번 마련해 보도록 하자.
+- describe 안에서 또 테스트케이스를 묶고 싶다면 또 describe 사용할 수 있다. 이렇게 계층적으로 구성하는 것이 가능하다.
+- async 테스트 방법
+
+```jsx
+function fetchProduct(error) {
+  if (error === 'error') {
+    return Promise.reject('network error')
+  }
+  return Promise.resolve({ item: 'Milk', price: 200 })
+}
+
+describe('Async', () => {
+	// 비동기 끝나는 시기 수동명시: Assertion 불일치 시 타임아웃때문에 불편.
+  it('async - done', (done) => {
+    fetchProduct().then((item) => {
+      expect(item).toEqual({ item: 'Milk', price: 200 })
+      done()
+    })
+  })
+
+	// Promise 리턴하면 타임아웃 문제가 해결되어 Assertion 불일치 시 타임아웃문제 해결 가능
+  it('async - return', () => {
+    return fetchProduct().then((item) => {
+      expect(item).toEqual({ item: 'Milk', price: 200 })
+    })
+  })
+
+	// 테스트 콜백이 async 일때도 마찬가지임
+  it('async - await', async () => {
+    const product = await fetchProduct()
+    expect(product).toEqual({ item: 'Milk', price: 200 })
+  })
+
+	// AndNot 타입 사용 => expect를 리턴하는 것을 보니 Matcher 실행 결과를 Promise화 하는걸까??
+  it('async - resolves', () => {
+    return expect(fetchProduct()).resolves.toEqual({
+      item: 'Milk',
+      price: 200,
+    })
+  })
+  it('async - rejects', () => {
+    return expect(fetchProduct('error')).rejects.toBe('network error')
+  })
+})
+```
+
+여기서 알 수 있는 것은, 테스트할 함수가 비동기일 경우 done 함수 인자를 설정하여 비동기의 종료시점을 명시화 하거나, 테스트 콜백이 Promise 를 리턴해야 한다는 점이다(async function 같은 경우에도 undefined 가 resolve된 Promise 를 리턴한다) Promise 를 리턴한다는 것을 Test Runner 가 감지해야 비동기로 이루어지는 로직을 테스트 할 수 있다. 만약 Promise 를 리턴하지 못한다면, Test Runner 가 동기적으로 종료되어 Assertion이 불일치 하더라도 테스트가 성공되는 부작용을 낳는다.
