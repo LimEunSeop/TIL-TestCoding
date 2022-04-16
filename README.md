@@ -128,3 +128,125 @@ describe('Async', () => {
 ```
 
 여기서 알 수 있는 것은, 테스트할 함수가 비동기일 경우 done 함수 인자를 설정하여 비동기의 종료시점을 명시화 하거나, 테스트 콜백이 Promise 를 리턴해야 한다는 점이다(async function 같은 경우에도 undefined 가 resolve된 Promise 를 리턴한다) Promise 를 리턴한다는 것을 Test Runner 가 감지해야 비동기로 이루어지는 로직을 테스트 할 수 있다. 만약 Promise 를 리턴하지 못한다면, Test Runner 가 동기적으로 종료되어 Assertion이 불일치 하더라도 테스트가 성공되는 부작용을 낳는다.
+
+## 6일차: Jest Mock 심플버전, 더 나은 아키텍처로 코드 작성하는 법
+
+```jsx
+function check(predicate, onSuccess, onFail) {
+  if (predicate()) {
+    onSuccess('yes');
+  } else {
+    onFail('no');
+  }
+}
+
+describe('check', () => {
+  let onSuccess
+  let onFail
+
+  beforeEach(() => {
+    onSuccess = jest.fn()
+    onFail = jest.fn()
+  })
+
+  it('should call onSuccess when predicate is true', () => {
+    check(() => true, onSuccess, onFail) // 이것이 커버리지의 대상이 된다.
+
+    // expect 아무리 꼼꼼히 해봤자 coverage 에 포함은 안됨. 그니까 expect 하는걸로 커버리지 믿으면 안됨
+    expect(onSuccess).toHaveBeenCalledTimes(1)
+    // expect(onSuccess.mock.calls.length).toBe(1)
+    expect(onSuccess).toHaveBeenCalledWith('yes')
+    // expect(onSuccess.mock.calls[0][0]).toBe('yes')
+    expect(onFail).toHaveBeenCalledTimes(0)
+    // expect(onFail.mock.calls.length).toBe(0)
+  })
+
+  it('should call onFail when predicate is false', () => {
+    check(() => false, onSuccess, onFail)
+
+    expect(onFail).toHaveBeenCalledTimes(1)
+    expect(onFail).toHaveBeenCalledWith('no')
+    expect(onSuccess).toHaveBeenCalledTimes(0)
+  })
+})
+```
+
+- 현재 check 모듈의 테스트는 각 Callback 들이 호출되는 여부 및 매개변수만 체크하면 된다.
+- 호출되는 Callback 들은 자기들만의 Test 가 따로 있을것이다. 따라서 간단히 Mocking만 하여 호출여부만 따지면 된다!!
+- **커버리지에 포함되는 것은 코드의 실행여부일 뿐이다**. 그에따른 Assertion을 얼마나 꼼꼼히 짜는지는 전적으로 개발자에게 달려있다.
+
+```jsx
+// product_service_no_di.js
+const ProductClient = require("./product_client");
+
+class ProductService {
+  constructor() {
+    this.productClient = new ProductClient();
+  }
+
+  fetchAvailableItems() {
+    return this.productClient
+      .fetchItems()
+      .then((items) =>
+        items.filter((item) => item.available)
+      );
+  }
+}
+
+module.exports = ProductService;
+```
+
+```jsx
+// product_client.js
+class ProductClient {
+  fetchItems() {
+    return fetch('http://example.com/login/id+password').then((response) => response.json())
+  }
+}
+
+module.exports = ProductClient
+```
+
+```jsx
+// product_service_no_di.test.js
+const ProductService = require("../product_service_no_di");
+const ProductClient = require("../product_client");
+jest.mock("../product_client");
+
+describe("ProductService", () => {
+  const fetchItems = jest.fn(async () => [
+    { item: "🍦", available: true },
+    { item: "🍕", available: false },
+  ]);
+  ProductClient.mockImplementation(() => {
+    return {
+      fetchItems,
+    };
+  });
+  let productService;
+
+  beforeEach(() => {
+    productService = new ProductService();
+    fetchItems.mockClear();
+    ProductClient.mockClear();
+  });
+
+  it("should filter out only available items", async () => {
+    const items = await productService.fetchAvailableItems();
+    expect(items).toHaveLength(1);
+    expect(items).toEqual([
+      {
+        item: "🍦", available: true,
+      },
+    ]);
+  });
+});
+```
+
+- 몇번이고 반복하지만, 단위 테스트는 **모듈 독립적**으로 해당 기능을 수행하기 위한 코드만을 작성해야한다
+- 만약 다른 모듈에 의존성이 있다면, 다른 모듈의 환경에 영향을 받을 수가 있다(네트워크 에러 등등...)
+- 따라서 의존성을 띄는 모듈이 있다면 반드시 해당 모듈을 Mock 해야 한다.
+- describe 안의 맨 윗줄에 의존성있는 모듈을 Mock 하는 컨벤션 참 괜찮은것 같다.
+- mock 테크닉(jest.mock 을 통해 불러온 모듈을 통째로 Mock 하여 `mockImplementation` 하기, 메서드를 미리 함수 mock 하여 이를 implementation 에 넣기)등을 눈여겨 봐두자.
+- `jest.config.js` 에서 clearMocks가 true 이면 `beforeEach` 에서 `mockClear` 안해줘도 됨. false 이면 해줘야 하는데, 이는 팀이 선호하는 방향이 어떻느냐에 따라 달라질 수 있다.
+- 이는 아직 완벽한 테스트코드는 아니다. 다음시간에 더욱 바람직한 방법으로 한다고 한다.
