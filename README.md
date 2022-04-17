@@ -250,3 +250,102 @@ describe("ProductService", () => {
 - mock 테크닉(jest.mock 을 통해 불러온 모듈을 통째로 Mock 하여 `mockImplementation` 하기, 메서드를 미리 함수 mock 하여 이를 implementation 에 넣기)등을 눈여겨 봐두자.
 - `jest.config.js` 에서 clearMocks가 true 이면 `beforeEach` 에서 `mockClear` 안해줘도 됨. false 이면 해줘야 하는데, 이는 팀이 선호하는 방향이 어떻느냐에 따라 달라질 수 있다.
 - 이는 아직 완벽한 테스트코드는 아니다. 다음시간에 더욱 바람직한 방법으로 한다고 한다.
+
+## 7일차: Stub과 Mock 의 적절한 사용법
+
+Mock이란: 구현사항 X, 원하는 부분만 가짜흉내
+
+Stub이란: 모듈의 실제 인터페이스를 최소한으로만 구현해 놓은 코드. 
+
+### Stub 예제
+
+```jsx
+// stub_product_client.js
+class StubProductClient {
+  async fetchItems() {
+    return [
+      { item: "🍦", available: true },
+      { item: "🍕", available: false },
+    ];
+  }
+}
+
+module.exports = StubProductClient;
+```
+
+```jsx
+// product_service.test.js
+const ProductService = require("../product_service");
+const StubProductClient = require("./stub_product_client");
+
+describe("ProductService - Stub", () => {
+  let productService;
+
+  beforeEach(() => {
+    productService = new ProductService(
+      new StubProductClient()
+    );
+  });
+
+  it("should filter out only available items", async () => {
+    const items =
+      await productService.fetchAvailableItems();
+    expect(items).toHaveLength(1);
+    expect(items).toEqual([
+      {
+        item: "🍦",
+        available: true,
+      },
+    ]);
+  });
+});
+```
+
+저번에 작성한 ProductService 테스트에서 ProductClient 를 Stub으로 만들어 Mock 대신 간편하게 사용할 수 있다. 이렇게 Mock 을 최대한 안 쓸수 있으면 안 쓰는 것이 낫다. 단, 호출 횟수 등의 Mock 전용 기능을 사용해야 하면 그때는 Mock 을 사용해야 한다.
+
+또한 ProductService 를 DI 패턴으로 바꾸었다. 이렇게 의존성을 스스로 결정하지 않고 외부에서 받아와야 Stub을 주입받아 더욱 간편하게 테스트 할 수 있다. 이처럼 효율적인 테스트 코드를 작성하는 과정에서 자연스럽게 코드 품질이 향상되니 테스트란 여러모로 순기능을 하는 좋은 것이라 생각든다.
+
+### Mock 을 사용해야할 때
+
+```jsx
+const UserService = require("../user_service");
+const UserClient = require("../user_client");
+jest.mock("../user_client");
+
+describe("UserService", () => {
+  const login = jest.fn(async () => "success");
+
+  UserClient.mockImplementation(() => {
+    return {
+      login,
+    };
+  });
+
+  let userService;
+
+  beforeEach(() => {
+    userService = new UserService(new UserClient());
+    login.mockClear();
+    UserClient.mockClear();
+  });
+
+  it("calls login() on UserClient when tries to login", async () => {
+    await userService.login("abc", "abc");
+
+    expect(login.mock.calls.length).toBe(1);
+  });
+
+  it("should not call login() on UserClient again if already logged in", async () => {
+    await userService.login("abc", "abc");
+    await userService.login("abc", "abc");
+
+    expect(login.mock.calls.length).toBe(1);
+  });
+});
+```
+
+UserClient도 Stub으로 사용하면 좋겠으나 이처럼 메서드 호출 횟수를 테스트하고자 할 때는 Mock 을 사용할 수밖에 없다.
+
+그리고 테스트는 Given-When-Then 의 순서대로 이루어져야 한다. 만약 expect 가 마지막에 있지 않고 중간에 뒤죽박죽 섞여있다면 그건 곧 테스트케이스를 나눠야 한다는 것을 의미한다!!
+
+테스트를 잘 하기위한 좋은 아키텍쳐란 무엇인지 앞으로 꾸준히 고민하도록 하자 !!
