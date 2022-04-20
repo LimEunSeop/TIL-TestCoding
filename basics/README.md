@@ -1,4 +1,6 @@
-# TIL-TestCoding
+# 유닛테스트와 TDD (웹개발자를 위한 테스트 마스터 클래스🍯)
+
+https://academy.dream-coding.com/courses/js-tdd
 
 ## 1일차: 테스트란 무엇인가? 언제 테스트를 해야할까? 테스트를 하는 이유, 장점
 
