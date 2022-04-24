@@ -47,3 +47,8 @@ UI에서 처리해야할 로직을 담는 클래스다. presenter 를 사용하�
 테스트에서도 이러한 사항이 지켜졌는지 녹여내야 한다. (toBe. 객체의 참조값이 같은지)
 
 ## 4일차: 첫번째 컴포넌트 테스트하기
+
+- React Testing Library: 컴포넌트의 내부 구현사항보단 사용자의 입장을 고려하여 손쉽게 테스트 할 수 있도록 도와주는 라이브러리
+- Matcher 를 사용하기 위해선 jest-dom 을 설치해야한다 (**devdependency 에 설치해야 동작한다!!)**
+- Core API 와 Query 를 잘 살펴보고 그 후 jest-dom 문서에서 Matcher 들도 살펴보며 이를 어떻게 매칭시킬지 자주 고민하자
+- fireEvent 보단 userEvent 를 사용하자. fireEvent 는 low level 이고 userEvent 가 사용자가 발생시키는 이벤트에 더 가깝다.
