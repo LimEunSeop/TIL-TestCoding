@@ -52,3 +52,47 @@ UI에서 처리해야할 로직을 담는 클래스다. presenter 를 사용하�
 - Matcher 를 사용하기 위해선 jest-dom 을 설치해야한다 (**devdependency 에 설치해야 동작한다!!)**
 - Core API 와 Query 를 잘 살펴보고 그 후 jest-dom 문서에서 Matcher 들도 살펴보며 이를 어떻게 매칭시킬지 자주 고민하자
 - fireEvent 보단 userEvent 를 사용하자. fireEvent 는 low level 이고 userEvent 가 사용자가 발생시키는 이벤트에 더 가깝다.
+
+```jsx
+import React from 'react'
+import { render, screen } from '@testing-library/react'
+import '@testing-library/jest-dom'
+import HabitAddForm from '../habitAddForm'
+import userEvent from '@testing-library/user-event'
+
+describe('HabitAddForm', () => {
+  let onAdd
+  let input
+  let button
+
+  beforeEach(() => {
+    onAdd = jest.fn()
+
+    render(<HabitAddForm onAdd={onAdd} />)
+    input = screen.getByPlaceholderText('Habit')
+    button = screen.getByText('Add')
+  })
+  it('has input and add button', () => {
+    expect(input).toBeInTheDocument()
+    expect(button).toBeInTheDocument()
+  })
+
+  it('calls onAdd prop when add button is clicked and valid habit is entered', () => {
+    // fireEvent.change(input, { target: { value: 'New Habit' } })
+    // fireEvent.click(button)
+
+    userEvent.type(input, 'New Habit')
+    userEvent.click(button)
+
+    expect(onAdd).toHaveBeenCalledWith('New Habit')
+  })
+
+  it('does not call onAdd when the habit is empty', () => {
+    userEvent.type(input, '')
+    userEvent.click(button)
+
+    expect(onAdd).toHaveBeenCalledTimes(0)
+  })
+})
+
+```
