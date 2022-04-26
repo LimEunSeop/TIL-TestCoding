@@ -113,3 +113,213 @@ React Testing Library 들의 쿼리들은 정말 좋은것 같다.. 왜냐면 �
 ### 부모도 일일히 다시 테스트 해야하는가??
 
 여기서 내가 의문이 든것!! 부모로부터 콜백을 Prop Drilling 한 상태에서 자식 컴포넌트에서 이미 테스트를 만들어 놨는데 부모에서 똑같은 로직을 테스트하는게 결코 옳은 것일까? 정답은 테스트를 하는게 맞긴 하다는 것이다. 왜냐면 어쩔수 없이 부모로부터 전달된 콜백이 호출됐는지 확인해야 하니까. 그렇지만 똑같은 테스트로직을 또 만든다는 것은 매우 비효율적이긴 하다. 여기서 Prop Drilling 이 왜 테스트에 비효율적인지의 이유가 여실히 드러난다. Prop Drilling 하지말자. **상태관리 라이브러리를 열심히 공부하자!!!!**
+
+## 6일차: App 컴포넌트 통합테스트하기
+
+컴포넌트 테스트까지는 스냅샷, 콜백 수행 테스트로 자신감을 키울 수 있었다면, App 컴포넌트 통합테스트를 할 때는 이와 별개로 앱을 동작시키는 것 처럼 코드를 작성해야 한다.
+
+수업에서 배운 소스는 Element 를 뽑아올 때 Index를 하드코딩한 경향이 강하고, 심지어 DOM 속성까지 참조하는 모습을 볼 수 있었다. 솔직히 말하자면 나는 이런 소스를 보면서 조금 불안함을 느꼈다. 일단 옆에 붙어있는 서로 다른 요소들을 getAll~ 쿼리를 해서 얻은 것들이 index 가 같다고 해서 adjacent 하다는 보장이 없다. 만약 동일한 것이 다른 컨테이너에 있었다면??
+
+그리고 Mock 데이터에 너무 의존하여 하드코딩한 경향도 큰 것같고, testId를 안 써도 될 상황에 쓰면서 접근성도 향상도 안됐고.. 주어진 query 나 jest-dom Matcher 들을 잘 활용하지 않고, 전반적으로 방어적인 테스트 코드가 아닌것 같아서 좀 아쉬웠다.
+
+그래서 아래의 수업 예제 소스를 다음과 같이 수정해 보았다.
+
+### 수정 전
+
+```jsx
+// 수정 전
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import React from 'react'
+import renderer from 'react-test-renderer'
+import App from '../app'
+import HabitPresenter from '../habit_presenter'
+
+describe('App', () => {
+  let presenter
+  beforeEach(() => {
+    presenter = new HabitPresenter([
+      { id: 1, name: 'Reading', count: 0 },
+      { id: 2, name: 'Running', count: 0 },
+      { id: 3, name: 'Coding', count: 1 },
+    ])
+  })
+
+  it('renders', () => {
+    const component = renderer.create(<App presenter={presenter} />)
+    expect(component.toJSON()).toMatchSnapshot()
+  })
+
+  describe('Component', () => {
+    beforeEach(() => {
+      render(<App presenter={presenter} />)
+    })
+
+    it('counts only active habits', () => {
+      const button = screen.getAllByTitle('increase')[0]
+      userEvent.click(button)
+      const count = screen.getByTestId('total-count')
+      expect(count.innerHTML).toBe('2')
+    })
+
+    it('adds new habit', () => {
+      const newHabit = 'New Habit'
+      const input = screen.getByPlaceholderText('Habit')
+      const button = screen.getByText('Add')
+      userEvent.type(input, newHabit)
+      userEvent.click(button)
+      const addedName = screen.getAllByTestId('habit-name')[3]
+      expect(addedName.innerHTML).toBe(newHabit)
+      const addedCount = screen.getAllByTestId('habit-count')[3]
+      expect(addedCount.innerHTML).toBe('0')
+    })
+
+    it('deletes an item', () => {
+      const first = screen.getAllByTitle('delete')[0]
+      userEvent.click(first)
+      const next = screen.getAllByTestId('habit-name')[0]
+      expect(next.innerHTML).not.toBe('Reading')
+    })
+
+    it('increases the counter', () => {
+      const button = screen.getAllByTitle('increase')[0]
+      userEvent.click(button)
+      const count = screen.getAllByTestId('habit-count')[0]
+      expect(count.innerHTML).toBe('1')
+    })
+
+    it('decreases the counter', () => {
+      const button = screen.getAllByTitle('decrease')[2]
+      userEvent.click(button)
+      const count = screen.getAllByTestId('habit-count')[2]
+      expect(count.innerHTML).toBe('0')
+    })
+
+    it('resets all counters', () => {
+      const button = screen.getByText('Reset All')
+      userEvent.click(button)
+      screen.getAllByTestId('habit-count').forEach((count) => {
+        expect(count.innerHTML).toBe('0')
+      })
+    })
+  })
+})
+```
+
+### 수정 후
+
+```jsx
+// 수정 후
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import '@testing-library/jest-dom'
+import React from 'react'
+import renderer from 'react-test-renderer'
+import App from '../app'
+import HabitPresenter from '../habit_presenter'
+
+describe('App', () => {
+  let presenter
+  beforeEach(() => {
+    presenter = new HabitPresenter([
+      { id: 1, name: 'Reading', count: 0 },
+      { id: 2, name: 'Running', count: 0 },
+      { id: 3, name: 'Coding', count: 1 },
+    ])
+  })
+
+  it('renders', () => {
+    const component = renderer.create(<App presenter={presenter} />)
+    expect(component.toJSON()).toMatchSnapshot()
+  })
+
+  describe('Component', () => {
+    beforeEach(() => {
+      render(<App presenter={presenter} />)
+    })
+
+    it('counts only active habits', () => {
+      const button = screen.getAllByTitle('increase')[0]
+      userEvent.click(button)
+      const countWrapper = screen.getByTestId('total-count')
+      const count = within(countWrapper).queryByText('2')
+      expect(count).toBeInTheDocument()
+    })
+
+    it('adds new habit', () => {
+      const newHabit = 'New Habit'
+      const input = screen.getByPlaceholderText('Habit')
+      const button = screen.getByText('Add')
+
+      userEvent.type(input, newHabit)
+      userEvent.click(button)
+
+      // testid 해야될 때: 쿼리로 도저히 해결 못하는것.
+      // 핵심은 구분되는 특징이 없고 오직 순서로만 찾아야 할때,
+      // 특정 장소를 좁혀 그곳에서 쿼리를 수행해야 할때(Container)
+      const habits = screen.getByTestId('habit-list')
+      const addedHabit = within(habits).getAllByRole('listitem').slice(-1)[0] // last item
+      const addedName = within(addedHabit).getByText(newHabit)
+      const addedCount = within(addedHabit).getByText('0')
+      expect(addedName).toBeInTheDocument()
+      expect(addedCount).toBeInTheDocument()
+    })
+
+    it('deletes an item', () => {
+      const first = screen.getAllByTitle('delete')[0]
+
+      userEvent.click(first)
+      const habits = screen.getByTestId('habit-list')
+      const deletedHabitName = within(habits).queryByText('Reading')
+
+      expect(deletedHabitName).not.toBeInTheDocument()
+    })
+
+    it('increases the counter', () => {
+      const habits = screen.getByTestId('habit-list')
+      const firstHabit = within(habits).getAllByRole('listitem')[0]
+      const button = within(firstHabit).getByTitle('increase')
+
+      const beforeCount = Number(within(firstHabit).getByTitle('count').textContent)
+      userEvent.click(button)
+
+      const afterCount = Number(within(firstHabit).getByTitle('count').textContent)
+      expect(afterCount).toBe(beforeCount + 1)
+    })
+
+    it('decreases the counter', () => {
+      const habits = screen.getByTestId('habit-list')
+      const firstHabit = within(habits).getAllByRole('listitem')[0]
+      const button = within(firstHabit).getByTitle('decrease')
+
+      const beforeCount = Number(within(firstHabit).getByTitle('count').textContent)
+      userEvent.click(button)
+
+      const afterCount = Number(within(firstHabit).getByTitle('count').textContent)
+      expect(afterCount).toBe(beforeCount - 1 < 0 ? 0 : beforeCount - 1)
+    })
+
+    it('resets all counters', () => {
+      const button = screen.getByText('Reset All')
+
+      userEvent.click(button)
+
+      const habits = screen.getByTestId('habit-list')
+      within(habits)
+        .getAllByTitle('count')
+        .forEach((count) => {
+          expect(count).toHaveTextContent('0')
+        })
+    })
+  })
+})
+```
+
+### 깨달은 점
+
+여기서 깨달은점 2가지가 있다.
+
+1. **adjacent 한 것은 within 함수를 사용해서 쿼리를 날려라.** adjacent 함을 보장해 줄 지어니..
+2. **testId 는 테스트의 범위를 좁히고 싶을 때만 사용해라.** Testing Library 의 쿼리만 사용하기에는 명백한 한계가 있다. 이름이 같은것이 있을 여지는 매우 많다.
+
+수정된 테스트코드에서 여전히 아쉬운 점이 있다. 나 또한 `textContent` 라는 DOM 요소를 사용했고, 컴포넌트 테스트인데 숫자연산을 한것이 찝찝하기도 하고, 기존에 있는 아이템이 컴포넌트에 있는지의 여부를 하드코딩으로 확인했다. 이 소스를 다시 최대한 방어적인 코드가 될때까지 리팩토링 해보자. 그리고 거기서 깨달은 경험들을 내 것으로 꼭 만들도록 하자.
