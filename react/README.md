@@ -219,13 +219,15 @@ import App from '../app'
 import HabitPresenter from '../habit_presenter'
 
 describe('App', () => {
+  const habits = [
+    { id: 1, name: 'Reading', count: 0 },
+    { id: 2, name: 'Running', count: 0 },
+    { id: 3, name: 'Coding', count: 1 },
+  ]
   let presenter
+
   beforeEach(() => {
-    presenter = new HabitPresenter([
-      { id: 1, name: 'Reading', count: 0 },
-      { id: 2, name: 'Running', count: 0 },
-      { id: 3, name: 'Coding', count: 1 },
-    ])
+    presenter = new HabitPresenter(habits)
   })
 
   it('renders', () => {
@@ -239,11 +241,15 @@ describe('App', () => {
     })
 
     it('counts only active habits', () => {
-      const button = screen.getAllByTitle('increase')[0]
-      userEvent.click(button)
-      const countWrapper = screen.getByTestId('total-count')
-      const count = within(countWrapper).queryByText('2')
-      expect(count).toBeInTheDocument()
+      const countWrapper = screen.getByTitle('total count')
+
+      const totalCount = habits.reduce((totalCount, item) => {
+        if (item.count > 0) {
+          return totalCount + 1
+        }
+        return totalCount
+      }, 0)
+      expect(countWrapper).toHaveTextContent(String(totalCount))
     })
 
     it('adds new habit', () => {
@@ -313,6 +319,7 @@ describe('App', () => {
     })
   })
 })
+
 ```
 
 ### 깨달은 점
