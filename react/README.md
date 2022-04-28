@@ -335,3 +335,89 @@ describe('App', () => {
 
 ### Cypress
 테스팅라이브러리로 진행한 컴포넌트 테스트로도 충분히 가상의 DOM 을 테스트할 수 있지만 실제 사용자의 입장에서 테스트를 하기 위해서는 e2e 테스트가 필요하다. 요즘 대세는 cypress. 공식문서의 오버뷰를 보니 정말 테스팅하기 편한 환경, 스스로 공부하기 좋은 문서 모두 고루 갖추었다. 선생님께서는 이것을 봐 가면서 스스로 테스트 코드 짜는 연습을 하라고 하셨다. 내일은 한번 문서만 보고 코딩해보자. 그 속에서 나만의 문서보는 노하우를 하나라도 터득해보자. 또한 새로운 라이브러리에 대한 대비도 확실히 하도록! 이 라이브러리가 영원할거라 생각하지 말고 변화에 유연하게 대처할 수 있는 마음의 준비를 항상 해두고 기술의 흐름을 파악할 줄 아는 자질도 갖추도록 하자.
+
+## 8일차: Cypress 공식문서 Getting Started 공부 - 1 : Writing Your First Test
+
+미쳤다.. Cypress 정마 잘 만들었는데..? 공식문서도 완전 떠먹여주느 꿀이고 [Kitchen Sink](https://github.com/cypress-io/cypress-example-kitchensink) 예제의 README.md 파일에 진짜 개꿀팁 정마 많다.. 정독하면서 인사이트 얻을거 많이 찾아보자.. 프로젝트 관리 이런식으로 해도 될거 같은데? (슬랙에 이어 README.md 꾸미기도 프젝관리에 추가.!!)
+
+### 용어정리
+
+- chaining: command 들의 이야기 집합
+
+### install
+
+```bash
+npm i cypress -D
+```
+
+### execute
+
+```bash
+$(npm bin)/cypress open
+```
+
+```bash
+npx cypress open
+```
+
+```jsx
+{
+  "scripts": {
+    "cypress:open": "cypress open"
+  }
+}
+```
+
+### Add a test file
+
+```bash
+touch {your_project}/cypress/integration/sample_spec.js
+```
+
+### 3A or GWT of Cypress
+
+1. Visit a web page
+2. Query for an element.
+3. Interact with that element. ⇒ 페이지 이동시 URL Assertion 해야함.
+4. Assert about the content on the page.
+
+### 자신의 서버에서 테스트해야하는 이유
+
+1. 언제든지 사이트가 바뀔수가 있다
+2. 해당 사이트가 A/B 테스트 중이라 결과에 일관성이 없을 수도 있다
+3. Google 과 같은 사이트는 이런 스크립트를 감지해서 접근 거부한다.
+4. Cypress 가 동작하지 못하도록 보안세팅을 해 놓았을 수도 있다.
+
+### Page Transition 하는 법
+
+1. 처음에 `cy.visit()` 을 하여 원하는 페이지 방문
+2. 링크를 `.click()` 하여 새로운 페이지 방문
+
+Page Transition은 페이지가 전부 로드될때까지 다음 command를 일시중지한다. 즉, 로드되지 않았는데 다음 커맨드가 실행될 걱정을 전혀 할 필요가 없다는 말이다. element Query 는 4초 타임아웃이고 Page Transition 은 60초 타임아웃이 걸린다. 이는 Configuration 에서 수정 가능하다.
+
+### Debugging
+
+#### Snapshot menu panel 의 역할
+
+- before: 이벤트가 발생하기 바로 직전
+- after: 이벤트가 발생하기 바로 이후
+
+만약 링크 클릭 이벤트였다면, 엄청 빠른 사이트였다면 after 클릭 시 빈 화면이 나올수도 있다. 느린 사이트라면 그대로 보일것. 눈으로 바로 확인 가능한 이벤트라면 스냅샷에 잘 찍힘!!
+
+#### Page Events
+
+TEST BODY 를 보면 `(PAGE LOAD)` , `(NEW URL)` 로그가 있는 것을 볼 수 있다. 이것들은 COMMAND 가 아니고, Cypress 에서 저 둘 이벤트가 중요하기 때문에 남겨놓은 **로그일 뿐이다!!**
+
+#### Console output
+
+Commands 클릭하고 브라우저 Console 열면, 해당 Command 에 대한 정보를 보여준다.
+
+- Command: 이슈된 커맨드
+- Yielded: 이 커맨드에 의해 반환된 것 ⇒ Element 가 반환됐다면 오른쪽클릭 하여 element 패널에서 검사할 수 있다!!
+- Elements: 찾아진 elements 갯수
+- Selector: 사용한 argument
+
+#### Special Commands
+
+- `cy.pause()` : Cypress Test Runner 내의 Position Break
+- `cy.debug()` : Browser Debug 기능 실행하여 이 코드의 위치를 첫 번째 Position Break로 잡는다.
