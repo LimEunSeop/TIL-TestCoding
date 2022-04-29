@@ -338,7 +338,7 @@ describe('App', () => {
 
 ## 8일차: Cypress 공식문서 Getting Started 공부 - 1 : Writing Your First Test
 
-미쳤다.. Cypress 정마 잘 만들었는데..? 공식문서도 완전 떠먹여주느 꿀이고 [Kitchen Sink](https://github.com/cypress-io/cypress-example-kitchensink) 예제의 README.md 파일에 진짜 개꿀팁 정마 많다.. 정독하면서 인사이트 얻을거 많이 찾아보자.. 프로젝트 관리 이런식으로 해도 될거 같은데? (슬랙에 이어 README.md 꾸미기도 프젝관리에 추가.!!)
+미쳤다.. Cypress 정말 잘 만들었는데..? 공식문서도 완전 떠먹여주는 꿀이고 [Kitchen Sink](https://github.com/cypress-io/cypress-example-kitchensink) 예제의 README.md 파일에 진짜 개꿀팁 정말 많다.. 정독하면서 인사이트 얻을거 많이 찾아보자.. 프로젝트 관리 이런식으로 해도 될거 같은데? (슬랙에 이어 README.md 꾸미기도 프젝관리에 추가.!!)
 
 ### 용어정리
 
