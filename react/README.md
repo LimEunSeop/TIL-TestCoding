@@ -421,3 +421,33 @@ Commands 클릭하고 브라우저 Console 열면, 해당 Command 에 대한 정
 
 - `cy.pause()` : Cypress Test Runner 내의 Position Break
 - `cy.debug()` : Browser Debug 기능 실행하여 이 코드의 위치를 첫 번째 Position Break로 잡는다.
+
+## 9일차: Cypress 공식문서 Getting Started 공부 - 2 : Testing Your App
+
+### 서버 실행순서
+
+웹서버 → Cypress script: Cypress script 내부에 절대 웹서버 실행 코드를 넣지 말자!!
+
+### Production 보단 local development server에서 테스트 해야하는 경우
+
+Production 에는 여러가지 제약이 있다. development 에서 하면 그러한 제약을 풀고 자유롭게 컨트롤 하며 테스트할 수 있다.
+
+### cy.visit baseUrl 지정해주는 법
+
+프로젝트 루트의 cypress.json 를 설정해준다!
+
+```json
+{
+	"baseUrl": "http://localhost:3000"
+}
+```
+
+설정을 저장해주면 browser가 kill 된다. 파일을 다시 열어줘야 테스트 가능하다.
+
+이 외에도 default timeout periods, environment variables, 사용할 reporter, 기타 등등을 설정할 수 있다. 해당 url 에서 configuration을 확인하자! [https://docs.cypress.io/guides/references/configuration](https://docs.cypress.io/guides/references/configuration)
+
+### 테스팅 전략 - seeding
+
+서버 데이터 mutation 없이, 테스팅 전 seed 명령어 실행해서 데이터 일일히 준비해주는 수고 없이 데이터를 Stubbing 하면 테스트를 좀 더 빠르게 수행할 수 있고 심지어는 서버가 없어도 된다.
+
+[Testing Strategies](https://docs.cypress.io/guides/getting-started/testing-your-app#Testing-strategies)는 아직 내가 공부할 필요는 없어보인다. 아직 E2E의 필요성도 크게 없을 뿐더러 E2E를 공부하더라도 내가 테스팅하고자 하는 목적과는 살짝 벗어난것 같다. 나중에 필요하면 [Stubbing](https://docs.cypress.io/guides/getting-started/testing-your-app#Stubbing-the-server) 하는 정도만 찾아서 간편하게 적용해보자. 중요도 낮은 부분에 지금 당장 연연하지 말고, 내일은 어제 배운 8일차 지식을 기반으로 Habit Tracker 앱의 E2E 테스트 코드를 빨리 작성하는걸로 마무리를 짓도록 하자!! 다음 중요한 진도를 빨리 나가야지 :)
