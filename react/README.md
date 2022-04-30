@@ -451,3 +451,206 @@ Production 에는 여러가지 제약이 있다. development 에서 하면 그�
 서버 데이터 mutation 없이, 테스팅 전 seed 명령어 실행해서 데이터 일일히 준비해주는 수고 없이 데이터를 Stubbing 하면 테스트를 좀 더 빠르게 수행할 수 있고 심지어는 서버가 없어도 된다.
 
 [Testing Strategies](https://docs.cypress.io/guides/getting-started/testing-your-app#Testing-strategies)는 아직 내가 공부할 필요는 없어보인다. 아직 E2E의 필요성도 크게 없을 뿐더러 E2E를 공부하더라도 내가 테스팅하고자 하는 목적과는 살짝 벗어난것 같다. 나중에 필요하면 [Stubbing](https://docs.cypress.io/guides/getting-started/testing-your-app#Stubbing-the-server) 하는 정도만 찾아서 간편하게 적용해보자. 중요도 낮은 부분에 지금 당장 연연하지 말고, 내일은 어제 배운 8일차 지식을 기반으로 Habit Tracker 앱의 E2E 테스트 코드를 빨리 작성하는걸로 마무리를 짓도록 하자!! 다음 중요한 진도를 빨리 나가야지 :)
+
+## 10일차: Habit Tracker에 Cypress 적용
+
+Cypress 라이브러리 자체는 selector 를 사용해서 요소를 찾아오는 등 내부 구현사항에 너무 치중돼 있어서 이전에서 배웠듯이 올바른 테스팅에 어긋나다. cypress 역시도 [Testing Library](https://testing-library.com/docs/cypress-testing-library/intro/) 가 있다. 이것을 이용해 기존 Testing Library 에서 사용했던 쿼리를 그대로 사용하고, 거기다 event나 assertion 을 체이닝 하여 테스트를 진행하면 된다!!
+
+### 타입정보 적용하는법
+
+테스트코드 맨 위에 아래와 같은 소스를 포함시켜야 내가 원하는 타입정보를 제대로 받아올 수 있다.
+
+```jsx
+/// <reference types="cypress" />
+```
+
+### Assertion
+
+`.should()` 로 체이닝하여 매개변수에 문자열을 넣는다. 여러가지 문자열 자동완성을 지원하기 때문에 편리하게 찾을 수 있다. 그때그때 필요한거 잘 찾아서 사용해 보도록 하자.
+
+### Testing Library 적용 전 소스
+
+내가 직접 문서를 봐 가면서 작성한 소스인데, 체계가 잘 잡혀있지 않는 느낌이 많이 든다. 무엇보다도 내부 구현사항에 치중된 쿼리가 사용자로 하여금 매우 헷갈리게 만들고, GWT, 3A 가 제대로 구분되어 있지 않아 이에대한 매서드 사용 요령에 관한 체계가 잡혀있지 않는 상태로, 아쉬운 점이 많다.
+
+```jsx
+describe('The Home Page', () => {
+  beforeEach(() => {
+    cy.visit('/')
+  })
+  describe('add', () => {
+    it('appends a habit of Studying', () => {
+      cy.get('.add-input')
+        .type('Studying')
+        .should('have.value', 'Studying')
+      cy.get('.add-button').click()
+      cy.contains('Studying')
+    })
+  })
+
+  describe('delete', () => {
+    it('removes an habit', () => {
+      cy.get(':nth-child(1) > .habit-delete').click()
+
+      cy.get('[data-testid="habit-list"]').should(
+        'not.contain',
+        'Reading'
+      )
+    })
+  })
+
+  describe('increment', () => {
+    it('has 999 when plus button is clicked 10 times', () => {
+      const plusButton = cy.get(
+        ':nth-child(1) > .habit-increase'
+      )
+
+      for (let i = 0; i < 10; i++) {
+        plusButton.click()
+      }
+
+      cy.get(
+        ':nth-child(1) > [data-testid="habit-count"]'
+      ).contains('10')
+    })
+
+    it('has active habit count 2 when incrementing 2 habits', () => {
+      cy.get(':nth-child(1) > .habit-increase').click()
+      cy.get(':nth-child(3) > .habit-increase').click()
+
+      cy.get('.navbar-count').contains('2')
+    })
+  })
+
+  describe('decrement', () => {
+    it('decrements active count 2 into 1 when a habit become zero', () => {
+      cy.get(':nth-child(1) > .habit-increase').click()
+      cy.get(':nth-child(3) > .habit-increase').click()
+
+      cy.get('.navbar-count').contains('2')
+
+      cy.get(':nth-child(3) > .habit-decrease').click()
+      cy.get('.navbar-count').contains('1')
+    })
+
+    it('cannot decrements a habit below zero', () => {
+      cy.get(':nth-child(1) > .habit-increase').click()
+      cy.get(
+        ':nth-child(1) > [data-testid="habit-count"]'
+      ).contains('1')
+
+      cy.get(':nth-child(1) > .habit-decrease')
+        .click()
+        .click()
+      cy.get(
+        ':nth-child(1) > [data-testid="habit-count"]'
+      ).contains('0')
+    })
+  })
+
+  describe('Reset All', () => {
+    it('changes all of the count to 0', () => {
+      cy.get(':nth-child(1) > .habit-increase').click()
+      cy.get(':nth-child(2) > .habit-increase').click()
+      cy.get(':nth-child(3) > .habit-increase').click()
+
+      cy.get(
+        ':nth-child(1) > [data-testid="habit-count"]'
+      ).contains('1')
+      cy.get(
+        ':nth-child(2) > [data-testid="habit-count"]'
+      ).contains('1')
+      cy.get(
+        ':nth-child(3) > [data-testid="habit-count"]'
+      ).contains('1')
+      cy.get('.navbar-count').contains('3')
+
+      cy.contains('Reset All').click()
+
+      cy.get(
+        ':nth-child(1) > [data-testid="habit-count"]'
+      ).contains('0')
+      cy.get(
+        ':nth-child(2) > [data-testid="habit-count"]'
+      ).contains('0')
+      cy.get(
+        ':nth-child(3) > [data-testid="habit-count"]'
+      ).contains('0')
+      cy.get('.navbar-count').contains('0')
+    })
+  })
+})
+```
+
+### Testing Library 적용 후  소스
+
+확실히 내부 구현사항에 치중되지 않는 사용자 입장에서의 쿼리로, 보기 훨씬 깔끔하다. 그리고 Testing Library 라서 나에게 반가운 쿼리들이 많았다. 쿼리를 수행하고 그 후에 event trigger 하고, `should` 를 통해 다양한 assertion 을 수행하는 일관성, 체계성을 확인하고 나서야 이제 좀 안정감이 들었다. 이 외에서 `each` 나 `cy.wrap` 이나, `first` , `last` 등등 흥미로운 것이 많았는데, 정말로 자연스러운 네이밍에서 기능을 유추할 수 있기때문에 금방 암기하고 넘어갈 수 있다는 생각이 든다. cypress 쪽은 정말 수작인것 같다. React Testing Library 에도 저런 편리한 기능이 있으면..
+
+> 또 아쉬웠던 점, 예전 리팩토링에서 연구한 대로 한 listitem 을 뽑아오고 그 속에서 버튼클릭하고 값 확인하는 안정성있는 코드 작성하고 싶었는데, 지금도 여전히 신뢰성이 낮은 쿼리를 수행하고 있다는것. 이 소스도 조만간 손을 대야한다. 하지만 내가 지금 지방에 내려와 있는 관계로 시간관계상 여기까지밖에 할 수 없다는점.. 다시 이 글을 본다면 바로 VSCode 로 달려가서 리팩토링 수행하자.
+> 
+
+```jsx
+/// <reference types="cypress" />
+import '@testing-library/cypress/add-commands'
+
+describe('Habit Tracker', () => {
+  beforeEach(() => {
+    cy.visit('/')
+  })
+
+  it('renders', () => {
+    cy.findByText('Habit Tracker').should('exist')
+  })
+
+  it('adds new habit at the end', () => {
+    cy.findByPlaceholderText('Habit').type('New Habit')
+    cy.findByText('Add').click()
+    cy.findAllByTestId('habit-name')
+      .last()
+      .should('have.text', 'New Habit')
+    cy.findAllByTestId('habit-count')
+      .last()
+      .should('have.text', '0')
+  })
+
+  it('increases count', () => {
+    cy.findAllByTitle('increase').first().click()
+    cy.findAllByTestId('habit-count')
+      .first()
+      .should('have.text', '1')
+  })
+  it('decreases count', () => {
+    cy.findAllByTitle('increase').first().click()
+    cy.findAllByTitle('decrease').first().click()
+    cy.findAllByTestId('habit-count')
+      .first()
+      .should('have.text', '0')
+  })
+  it('does not decreases below 0', () => {
+    cy.findAllByTitle('decrease').first().click()
+    cy.findAllByTestId('habit-count')
+      .first()
+      .should('have.text', '0')
+  })
+  it('shows active count on the header', () => {
+    cy.findAllByTitle('increase').first().click()
+    cy.findAllByTitle('increase').last().click()
+    cy.findByTitle('total count').should('have.text', '2')
+  })
+
+  it('reset to 0 when clicking reset all', () => {
+    cy.findAllByTitle('increase').first().click()
+    cy.findAllByTitle('increase').last().click()
+    cy.findByText('Reset All').click()
+    cy.findAllByTestId('habit-count').each((item) => {
+      cy.wrap(item).should('have.text', '0')
+    })
+  })
+  it('deletes an item', () => {
+    cy.findAllByTitle('delete').first().click()
+    cy.findAllByTestId('habit-name').should(
+      'not.contain.text',
+      'Reading'
+    )
+  })
+})
+```
